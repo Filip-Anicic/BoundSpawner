@@ -6,7 +6,7 @@
 
 void FBoundSpawnerCommands::RegisterCommands()
 {
-	UI_COMMAND(OpenPluginWindow, "BoundSpawner", "Bring up BoundSpawner window", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(OpenPluginWindow, "Bound Spawner", "Open Bound Spawner tool", EUserInterfaceActionType::Button, FInputChord());
 }
 
 #undef LOCTEXT_NAMESPACE

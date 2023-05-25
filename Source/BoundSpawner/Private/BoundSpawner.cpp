@@ -28,7 +28,6 @@ void FBoundSpawnerModule::StartupModule()
 	FBoundSpawnerCommands::Register();
 	
 	PluginCommands = MakeShareable(new FUICommandList);
-
 	PluginCommands->MapAction(
 		FBoundSpawnerCommands::Get().OpenPluginWindow,
 		FExecuteAction::CreateRaw(this, &FBoundSpawnerModule::PluginButtonClicked),
@@ -37,24 +36,17 @@ void FBoundSpawnerModule::StartupModule()
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FBoundSpawnerModule::RegisterMenus));
 	
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(BoundSpawnerTabName, FOnSpawnTab::CreateRaw(this, &FBoundSpawnerModule::OnSpawnPluginTab))
-		.SetDisplayName(LOCTEXT("FBoundSpawnerTabTitle", "BoundSpawner"))
+		.SetDisplayName(LOCTEXT("FBoundSpawnerTabTitle", "Bound Spawner"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 }
 
 
 void FBoundSpawnerModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-
 	UToolMenus::UnRegisterStartupCallback(this);
-
 	UToolMenus::UnregisterOwner(this);
-
 	FBoundSpawnerStyle::Shutdown();
-
 	FBoundSpawnerCommands::Unregister();
-
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(BoundSpawnerTabName);
 }
 
@@ -106,6 +98,7 @@ TSharedRef<SDockTab> FBoundSpawnerModule::OnSpawnPluginTab(const FSpawnTabArgs& 
 
 FReply FBoundSpawnerModule::OnSpawnButtonClicked()
 {
+	//Get tool settings from widget
 	UBoundSpawnerSettings* settings = BoundSpawnerWidget->GetCustomSettings();
 	const TArray<FSoftObjectPath> assetsToLoad = {
 		settings->mesh.ToSoftObjectPath(),
@@ -113,6 +106,7 @@ FReply FBoundSpawnerModule::OnSpawnButtonClicked()
 		settings->material.ToSoftObjectPath()
 	};
 
+	//Load needed assets async
 	UAssetManager::Get().GetStreamableManager().RequestAsyncLoad(assetsToLoad,
 		[this, settings]()
 		{
@@ -132,6 +126,7 @@ void FBoundSpawnerModule::SpawnInBounds(UStaticMesh* staticMesh, UBoundSpawnerSe
 		return;
 	}
 
+	//Get World
 	UUnrealEditorSubsystem* EditorSubsystem = GEditor->GetEditorSubsystem<UUnrealEditorSubsystem>();
 	const UObject* worldContext = EditorSubsystem->GetEditorWorld();
 	UWorld* World = GEngine->GetWorldFromContextObject(worldContext, EGetWorldErrorMode::LogAndReturnNull);
@@ -152,6 +147,7 @@ void FBoundSpawnerModule::SpawnInBounds(UStaticMesh* staticMesh, UBoundSpawnerSe
 	
 		for (int i = 0; i < settings.spawnAmount; ++i)
 		{
+			//Generate random position, rotation and scale based on tool settings
 			FSpawnedMeshData spawnedMeshData;
 			spawnedMeshData.position = FVector(FMath::RandRange(settings.positionRange.Min.X, settings.positionRange.Max.X),
 											   FMath::RandRange(settings.positionRange.Min.Y, settings.positionRange.Max.Y),
@@ -162,15 +158,22 @@ void FBoundSpawnerModule::SpawnInBounds(UStaticMesh* staticMesh, UBoundSpawnerSe
 			spawnedMeshData.scale = FMath::RandRange(settings.scaleRange.GetLowerBoundValue(), settings.scaleRange.GetUpperBoundValue());
 			spawnedMeshData.meshType = settings.mesh;
 
+			//Generate a unique name to not overlap other entry names in data table 
 			const FString actorName = FString::Printf(TEXT("%s_%s"), *staticMesh->GetName(), *FGuid::NewGuid().ToString());
+
+			//Spawn actor and set position, rotation and scale
 			AStaticMeshActor* meshActor = World->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), spawnedMeshData.position, spawnedMeshData.rotation);
 			meshActor->SetActorRelativeScale3D(FVector(spawnedMeshData.scale));
 			meshActor->SetActorLabel(actorName, true);
 			meshActor->SetMobility(EComponentMobility::Stationary);
+
+			//Set static mesh component
 			UStaticMeshComponent* meshComponent = meshActor->GetStaticMeshComponent();
 			if(meshComponent)
 			{
 				meshComponent->SetStaticMesh(staticMesh);
+
+				//Create dynamic material and set a random color
 				UMaterialInstanceDynamic* MaterialInstance = UMaterialInstanceDynamic::Create(settings.material.Get(), NULL);
 				meshComponent->SetMaterial(0, MaterialInstance);
 				if(MaterialInstance)
@@ -186,8 +189,8 @@ void FBoundSpawnerModule::SpawnInBounds(UStaticMesh* staticMesh, UBoundSpawnerSe
 			settings.dataTable->AddRow(*actorName, spawnedMeshData);
 			meshActor->Modify();
 		}
-		FAssetRegistryModule::AssetSaved(*dataTable);
 		UEditorAssetLibrary::SaveLoadedAsset(dataTable, false);
+
 		//End transaction for undo/redo
 		GEditor->EndTransaction();
 	}
