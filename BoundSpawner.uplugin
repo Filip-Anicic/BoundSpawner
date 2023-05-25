@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "0.1",
+	"VersionName": "0.2",
 	"FriendlyName": "BoundSpawner",
 	"Description": "Tool that spawns meshes in the world within a bounding box",
 	"Category": "Other",

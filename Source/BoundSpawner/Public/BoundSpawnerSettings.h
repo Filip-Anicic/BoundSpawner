@@ -19,10 +19,13 @@ public:
 	UPROPERTY(EditAnywhere, Category="Settings", Config, meta=(RequiredAssetDataTags="RowStructure=SpawnedMeshData"))
 	TSoftObjectPtr<UDataTable> dataTable = TSoftObjectPtr<UDataTable>(FSoftObjectPath("/BoundSpawner/DT_SpawnedMeshes.DT_SpawnedMeshes"));
 	
-	UPROPERTY(EditAnywhere, Category="Settings", Config, meta=(RowType=SpawnedMeshData))
+	UPROPERTY(EditAnywhere, Category="Settings", Config)
+	TSoftObjectPtr<UMaterial> material = TSoftObjectPtr<UMaterial>(FSoftObjectPath("/BoundSpawner/M_Spawn.M_Spawn"));
+	
+	UPROPERTY(EditAnywhere, Category="Settings", Config)
 	uint8 spawnAmount = 5;
 
-	UPROPERTY(EditAnywhere, Category="Settings", Config, meta=(RowType=SpawnedMeshData))
+	UPROPERTY(EditAnywhere, Category="Settings", Config)
 	TSoftObjectPtr<UStaticMesh> mesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath("/Engine/VREditor/BasicMeshes/SM_Cube_01.SM_Cube_01"));
 
 	UPROPERTY(EditAnywhere, Category="Settings", Config)

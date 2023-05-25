@@ -5,6 +5,7 @@
 #include "BoundSpawnerCommands.h"
 #include "BoundSpawnerWidget.h"
 #include "EditorAssetLibrary.h"
+#include "ShaderCompiler.h"
 #include "SpawnedMeshData.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SBox.h"
@@ -12,6 +13,7 @@
 #include "ToolMenus.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StaticMeshActor.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Subsystems/UnrealEditorSubsystem.h"
 
 static const FName BoundSpawnerTabName("BoundSpawner");
@@ -107,7 +109,8 @@ FReply FBoundSpawnerModule::OnSpawnButtonClicked()
 	UBoundSpawnerSettings* settings = BoundSpawnerWidget->GetCustomSettings();
 	const TArray<FSoftObjectPath> assetsToLoad = {
 		settings->mesh.ToSoftObjectPath(),
-		settings->dataTable.ToSoftObjectPath()
+		settings->dataTable.ToSoftObjectPath(),
+		settings->material.ToSoftObjectPath()
 	};
 
 	UAssetManager::Get().GetStreamableManager().RequestAsyncLoad(assetsToLoad,
@@ -168,11 +171,22 @@ void FBoundSpawnerModule::SpawnInBounds(UStaticMesh* staticMesh, UBoundSpawnerSe
 			if(meshComponent)
 			{
 				meshComponent->SetStaticMesh(staticMesh);
+				UMaterialInstanceDynamic* MaterialInstance = UMaterialInstanceDynamic::Create(settings.material.Get(), NULL);
+				meshComponent->SetMaterial(0, MaterialInstance);
+				if(MaterialInstance)
+				{
+					FRandomStream RandomStream(FMath::Rand());
+					FVector RandomBaseColor = FVector(RandomStream.FRandRange(0.0f, 1.0f),
+													  RandomStream.FRandRange(0.0f, 1.0f),
+													  RandomStream.FRandRange(0.0f, 1.0f));
+					MaterialInstance->SetVectorParameterValue(TEXT("Color"), FLinearColor(RandomBaseColor));
+					meshComponent->MarkRenderInstancesDirty();
+				}
 			}
 			settings.dataTable->AddRow(*actorName, spawnedMeshData);
 			meshActor->Modify();
 		}
-		
+		FAssetRegistryModule::AssetSaved(*dataTable);
 		UEditorAssetLibrary::SaveLoadedAsset(dataTable, false);
 		//End transaction for undo/redo
 		GEditor->EndTransaction();
